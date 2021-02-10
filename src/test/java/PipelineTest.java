@@ -11,9 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 class PipelineTest {
-    private Config config = mock(Config.class);
-    private CapturingLogger log = new CapturingLogger();
-    private Emailer emailer = mock(Emailer.class);
+    private final Config config = mock(Config.class);
+    private final CapturingLogger log = new CapturingLogger();
+    private final Emailer emailer = mock(Emailer.class);
 
     private Pipeline pipeline;
 
