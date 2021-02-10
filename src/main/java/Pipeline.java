@@ -7,6 +7,7 @@ public class Pipeline {
     private final Config config;
     private final Emailer emailer;
     private final Logger log;
+    private static final String SUCCESS = "success";
 
     public Pipeline(Config config, Emailer emailer, Logger log) {
         this.config = config;
@@ -15,45 +16,46 @@ public class Pipeline {
     }
 
     public void run(Project project) {
-        boolean testsPassed;
-        boolean deploySuccessful;
+        if (haveTestsFailed(project)) {
+            sendEmail("Tests failed");
+            return;
+        }
 
-        if (project.hasTests()) {
-            if ("success".equals(project.runTests())) {
-                log.info("Tests passed");
-                testsPassed = true;
-            } else {
-                log.error("Tests failed");
-                testsPassed = false;
-            }
-        } else {
+        if (hasDeploymentFailed(project)) {
+            sendEmail("Deployment failed");
+            return;
+        }
+        sendEmail("Deployment completed successfully");
+    }
+
+    private boolean haveTestsFailed(Project project) {
+        if (!project.hasTests()) {
             log.info("No tests");
-            testsPassed = true;
+            return false;
         }
 
-        if (testsPassed) {
-            if ("success".equals(project.deploy())) {
-                log.info("Deployment successful");
-                deploySuccessful = true;
-            } else {
-                log.error("Deployment failed");
-                deploySuccessful = false;
-            }
-        } else {
-            deploySuccessful = false;
+        if (project.runTests().equals(SUCCESS)) {
+            log.info("Tests passed");
+            return false;
         }
 
+        log.error("Tests failed");
+        return true;
+    }
+
+    private boolean hasDeploymentFailed(Project project) {
+        if (!project.deploy().equals(SUCCESS)) {
+            log.error("Deployment failed");
+            return true;
+        }
+        log.info("Deployment successful");
+        return false;
+    }
+
+    private void sendEmail(String text) {
         if (config.sendEmailSummary()) {
             log.info("Sending email");
-            if (testsPassed) {
-                if (deploySuccessful) {
-                    emailer.send("Deployment completed successfully");
-                } else {
-                    emailer.send("Deployment failed");
-                }
-            } else {
-                emailer.send("Tests failed");
-            }
+            emailer.send(text);
         } else {
             log.info("Email disabled");
         }
